@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://unpkg.com/jspsych@7.0.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.0.0"></script>
+    <link rel="stylesheet" href="https://unpkg.com/jspsych@7.0.0/css/jspsych.css">
+ <style>
+ body {
+  margin: 0;
+  background-color: #f8f2eb;
+  font-family: Arial, Helvetica, sans-serif;
+ }
+ .jspsych-btn {
+    margin-bottom: 10px;
+ }
+ .okClass {
+  border: 10px solid #73AD21;
+  border-radius: 15px;
+  padding: 15px;
+  margin: 40px;
+ }
+ 
+ .wrongClass {
+  border: 10px solid #ad4921;
+  border-radius: 15px;
+  padding: 15px;
+  margin: 40px;
+ }
+
+ .bordergray {
+  border: 10px solid #8f8f8f9c;
+  border-radius: 15px;
+  padding: 15px;
+  margin: 40px;
+ }
+ 
+ .layout {
+  width: inherit;
+  height: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+@media (min-width:900px) {
+  .layout {
+    flex-direction: row;
+  }
+}
+.layout img {
+  width: 300px;
+  height: 300px;
+}
+
+.loader {
+  border: 16px solid white;
+  display: flex;
+  margin-left: auto;
+  margin-right: auto; 
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  border-radius: 50%;
+  border-top: 16px solid #8c4045;
+  width: 80px;
+  height: 80px;
+  -webkit-animation: spin 2s linear infinite; /* Safari */
+  animation: spin 2s linear infinite;
+}
+
+/* Safari */
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+<script>
+var jsPsych = initJsPsych({
+                on_finish: async function(){
+                    var d = jsPsych.data.get().
+                    ignore('internal_node_id').
+                    ignore('trial_type').
+                    ignore('trial_index').
+                    ignore('time_elapsed').
+                    ignore('rt_tot').
+                    ignore('stimulus')
+                    var t = {
+                        'taskcode': taskid, 
+                        'trials': d.trials
+                    };
+                    await senddata(t)
+                    window.location = "index.html"
+                }
+            });
+
+async function senddata(d) {
+    try {
+            var addres = 'https://genrule.dpss.psy.unipd.it/w/aP/senddata';
+            var auth  = 'Bearer '+ localStorage.getItem('jwtToken_appParole'); 
+            const response = await fetch(addres, {
+                method: 'POST',
+                headers: {
+                'Authorization': auth,
+                'Content-Type': 'application/json', 
+                },
+                body: JSON.stringify(d),
+             })
+            }
+        catch (error) {
+            console.error("Error:", error);
+            return null
+        }
+    }
+
+var show_data = {
+            type: jsPsychHtmlButtonResponse,
+            stimulus: function() {
+                var trial_data = jsPsych.data.getLastTrialData().values();
+                var trial_json = JSON.stringify(trial_data, null, 2);
+                return `<p style="margin-bottom:0px;"><strong>Trial data:</strong></p>
+                <pre style="margin-top:0px;text-align:left;">${trial_json}</pre>`;
+            },
+            choices: ['exit']
+        };
+
+async function getTrial (code) {
+        try {
+            var addres = 'https://genrule.dpss.psy.unipd.it/w/aP/gettrial?&code='+code+'&providedata=true';
+            var auth  = 'Bearer '+ localStorage.getItem('jwtToken_appParole'); 
+            const response = await fetch(addres, {
+                method: 'GET',
+                headers: {
+                'Authorization': auth
+                }
+             })
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                return false
+                throw new TypeError("Oops, we haven't got JSON!");
+            }
+            const tmp = await response.text();
+            var trial = JSON.parse(tmp)
+            var myd =document.getElementById("main")
+            myd.classList.remove("loader");
+            var timeline =[];
+            for (let i = 0; i < trial.trials.length; i++) {
+                if (trial.target_type=='image') {
+                    stim =  '<p style="font-size:32px;"> '+ trial.trials[i].statement+' </p>' +
+                            '<div id="layout">'+
+                            '<img id="ima0" class="bordergray" class="'+trial.trials[i].classe[0]+'" src='+trial.trials[i].targets[0]+' width=300px/>' +
+                            ''+
+                            '<img id="ima1" class="bordergray" class="'+trial.trials[i].classe[1]+'" src='+trial.trials[i].targets[1]+' width=300px/>'+
+                            '</div>';
+                }   else {
+                    stim =  '<p style="font-size:32px;"> '+ trial.trials[i].statement+' </p>' +
+                        '<div id="layout">'+
+                        '<button type="button" id="ima0" style="font-size:32px;" class="bordergray" class="'+trial.trials[i].classe[0]+'" >' +
+                        trial.trials[i].targets[0]+ '</button>'+
+                        ''+
+                        '<button type="button" id="ima1" style="font-size:32px;" class="bordergray" class="'+trial.trials[i].classe[1]+'" >'+
+                        trial.trials[i].targets[1]+' </button>'+
+                        '</div>';
+                } 
+            var mytrial = {
+                type: jsPsychHtmlButtonResponse,
+                stimulus: stim,
+                choices: ['Continua'],
+                on_finish: function(data) {
+                    data.acc = mytrial.acc
+                    data.rt_tot = data.rt
+                    data.rt = mytrial.rt
+                    data.trial_id = trial.trials[i].trial_id
+                },
+                on_load: function() {
+                    var jsbts = document.getElementsByClassName("jspsych-btn");
+                    let jsbtsArr = Array.from(jsbts)
+                    jsbtsArr.map(item => item.disabled=true)
+                    var ico0 = document.getElementById("ima0")
+                    var ico1 = document.getElementById("ima1")
+                    var firstTouch = true
+                    var start_time = performance.now();
+                    ico0.addEventListener("click", function () {
+                        ico1.classList.remove('bordergray')
+                        ico1.classList.remove(trial.trials[i].classe[1])
+                        ico0.classList.remove('bordergray')
+                        ico0.classList.add(trial.trials[i].classe[0])
+                        ico1.classList.add('bordergray')
+                        if (trial.trials[i].classe[0]=='okClass') {
+                            jsbtsArr.map(item => item.disabled=false)
+                            if(firstTouch) {
+                                firstTouch = false
+                                mytrial.rt = performance.now()-start_time
+                                mytrial.acc = true
+                            }
+                        } else {
+                            jsbtsArr.map(item => item.disabled=true)
+                            if(firstTouch) {
+                                firstTouch = false
+                                mytrial.rt = performance.now()-start_time
+                                mytrial.acc = false
+                            }
+                        }
+                    });
+                ico1.addEventListener("click", function () {
+                    ico0.classList.remove('bordergray')
+                    ico0.classList.remove(trial.trials[i].classe[0])
+                    ico1.classList.remove('bordergray')
+                    ico0.classList.add('bordergray')
+                    ico1.classList.add(trial.trials[i].classe[1])
+                    if (trial.trials[i].classe[1]=='okClass') {
+                        jsbtsArr.map(item => item.disabled=false)
+                        if(firstTouch) {
+                            firstTouch = false
+                            mytrial.rt = performance.now()-start_time
+                            mytrial.acc = true
+                        }
+                    } else {
+                        jsbtsArr.map(item => item.disabled=true)
+                        if(firstTouch) {
+                            firstTouch = false
+                            mytrial.rt = performance.now()-start_time
+                            mytrial.acc = false
+                        }
+                    }
+                });
+            },
+            prompt: ""
+            };
+            timeline.push(mytrial)
+            }
+            jsPsych.run(timeline);
+        }
+        catch (error) {
+            console.error("Error:", error);
+            return null
+        }
+    }
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const taskid = urlParams.get('taskid')
+    trial = getTrial(taskid)        
+</script>
+</head>
+<body>
+    <div>
+    <div id = "main" class="loader">
+    </div>
+</div>
+</body>
+</html>   
+
+
