@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="https://unpkg.com/jspsych@7.0.0"></script>
-    <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.0.0"></script>
-    <link rel="stylesheet" href="https://unpkg.com/jspsych@7.0.0/css/jspsych.css">
+    <script src="jspsych/jspsych.js"></script>
+    <script src="jspsych/plugin-html-button-response.js"></script>
+    <link href="jspsych/jspsych.css" rel="stylesheet" type="text/css" />
  <style>
  body {
   margin: 0;
@@ -103,7 +103,7 @@ async function senddata(d) {
             var addres = 'https://genrule.dpss.psy.unipd.it/w/aP/senddata';
             var auth  = 'Bearer '+ localStorage.getItem('jwtToken_appParole'); 
             console.log(d);
-            console.log(JSON.strinify(d));
+            console.log(JSON.stringify(d));
             const response = await fetch(addres, {
                 method: 'POST',
                 headers: {
