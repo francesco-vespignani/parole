@@ -103,7 +103,7 @@ async function senddata(d) {
             var addres = 'https://genrule.dpss.psy.unipd.it/w/aP/senddata';
             var auth  = 'Bearer '+ localStorage.getItem('jwtToken_appParole'); 
             console.log(d);
-            console.log(JSON.strinify(d);
+            console.log(JSON.strinify(d));
             const response = await fetch(addres, {
                 method: 'POST',
                 headers: {
